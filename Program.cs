@@ -1,10 +1,15 @@
-using System.Reflection.Metadata;
 using Microsoft.AspNetCore.Rewrite;
+using Microsoft.EntityFrameworkCore;
+using MyNewApp.Data;
+using MyNewApp.Models;
+using MyNewApp.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Independencies Injections
-builder.Services.AddSingleton<ITaskService>(new InMemoryTaskService());
+// Independencies Injection
+builder.Services.AddScoped<ITodoService, TodoService>();
+builder.Services.AddDbContext<TodoContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -22,22 +27,20 @@ app.Use(async (context, next) =>
 
 app.MapGet("/", () => "I'm still alive YEAHHH!");
 
-var todos = new List<Todo>();
+app.MapGet("/todos", (ITodoService taskService) => taskService.GetTodosAsync());
 
-app.MapGet("/todos", (ITaskService taskService) => taskService.GetTodos());
-
-app.MapGet("/todos/{id}", (int id, ITaskService taskService) =>
+app.MapGet("/todos/{id}", async (int id, ITodoService taskService) =>
 {
-    var targetTodo = taskService.GetTodoBodyId(id);
+    var targetTodo = await taskService.GetTodoByIdAsync(id);
     return targetTodo is not null 
         ? Results.Ok(targetTodo) 
         : Results.NotFound();
 });
 
-app.MapPost("/todos", (Todo task, ITaskService taskService) =>
+app.MapPost("/todos", async (Todo task, ITodoService taskService) =>
 {
-    taskService.AddTodo(task);
-    return Results.Created($"/todos/{task.Id}", task);
+    var added = await taskService.AddTodoAsync(task);
+    return Results.Created($"/todos/{added.Id}", added);
 })
 .AddEndpointFilter(async (context, next) =>
 {
@@ -46,7 +49,7 @@ app.MapPost("/todos", (Todo task, ITaskService taskService) =>
 
     if (taskArgument.DueDate < DateTime.UtcNow)
     {
-        errors.Add(nameof(Todo.DueDate), ["Cannot hav due date in the past time."]);
+        errors.Add(nameof(Todo.DueDate), ["Cannot have due date in the past time."]);
     }
     if (taskArgument.IsCompleted)
     {
@@ -60,50 +63,10 @@ app.MapPost("/todos", (Todo task, ITaskService taskService) =>
     return await next(context);
 });
 
-app.MapDelete("/todos/{id}", (ITaskService taskService, int id) =>
+app.MapDelete("/todos/{id}", async (ITodoService taskService, int id) =>
 {
-    taskService.DeleteTodoById(id);
-    return Results.NoContent();
+    var deleted = await taskService.DeleteTodoByIdAsync(id);
+    return deleted ? Results.NoContent(): Results.NotFound();
 });
 
 app.Run();
-
-public record Todo(int Id, string Name, DateTime DueDate, bool IsCompleted);
-
-// Logic with interface and implementation
-interface ITaskService
-{
-    Todo? GetTodoBodyId(int id);
-
-    List<Todo> GetTodos();
-
-    void DeleteTodoById(int id);
-
-    Todo AddTodo(Todo Task);
-}
-
-class InMemoryTaskService : ITaskService
-{
-    private readonly List<Todo> _todos = [];
-
-    public Todo AddTodo(Todo task)
-    {
-        _todos.Add(task);
-        return task;
-    }
-
-    public void DeleteTodoById(int id)
-    {
-        _todos.RemoveAll(task => task.Id == id);   
-    }
-
-    public Todo? GetTodoBodyId(int id)
-    {
-        return _todos.SingleOrDefault(t => id == t.Id);
-    }
-
-    public List<Todo> GetTodos()
-    {
-        return _todos;
-    }
-}

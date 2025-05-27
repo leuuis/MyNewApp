@@ -1,0 +1,40 @@
+# Ignore build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ASP.NET Core secrets
+secrets.json
+
+# SQLite database file
+*.db
+
+# VS Code
+.vscode/
+
+# Rider IDE
+.idea/
+
+# dotnet watch
+**/node_modules/
+**/dist/
+**/bower_components/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# EF Core Migrations
+Migrations/
+
+# System-specific
+.DS_Store
+Thumbs.db
