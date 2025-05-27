@@ -1,6 +1,7 @@
 using MyNewApp.Models;
 
 namespace MyNewApp.Services.Interfaces;
+
 public interface ITodoService
 {
     Task<Todo?> GetTodoByIdAsync(int id);
@@ -9,5 +10,7 @@ public interface ITodoService
 
     Task<bool> DeleteTodoByIdAsync(int id);
 
-    Task<Todo> AddTodoAsync(Todo Task);
+    Task<Todo> AddTodoAsync(Todo task);
+
+    Task<Todo?> UpdateTodoByIdAsync(int id, Todo task);
 }

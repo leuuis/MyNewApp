@@ -2,16 +2,28 @@ using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using MyNewApp.Data;
 using MyNewApp.Models;
+using MyNewApp.Services;
 using MyNewApp.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Independencies Injection
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddDbContext<TodoContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+    c.RoutePrefix = "swagger"; // esto hace que cargue en /swagger
+});
 
 // Middleware to rewrite the URL
 app.UseRewriter(new RewriteOptions()
@@ -67,6 +79,12 @@ app.MapDelete("/todos/{id}", async (ITodoService taskService, int id) =>
 {
     var deleted = await taskService.DeleteTodoByIdAsync(id);
     return deleted ? Results.NoContent(): Results.NotFound();
+});
+
+app.MapPut("/todos/{id}", async (int id, Todo updateTask, ITodoService taskService) =>
+{
+    var updated = await taskService.UpdateTodoByIdAsync(id, updateTask);
+    return updated is not null ? Results.Ok(updated) : Results.NotFound();
 });
 
 app.Run();

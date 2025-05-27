@@ -3,7 +3,9 @@ using MyNewApp.Data;
 using MyNewApp.Models;
 using MyNewApp.Services.Interfaces;
 
-class TodoService(TodoContext context) : ITodoService
+namespace MyNewApp.Services
+{
+   public class TodoService(TodoContext context) : ITodoService
 {
     private readonly TodoContext _context = context;
 
@@ -33,4 +35,19 @@ class TodoService(TodoContext context) : ITodoService
     {
         return await _context.Todos.ToListAsync();
     }
+
+    public async Task<Todo?> UpdateTodoByIdAsync(int id, Todo task)
+    {
+        var existingTodo = await _context.Todos.FindAsync(id);
+        if (existingTodo is null) return null;
+
+        existingTodo.Name = task.Name;
+        existingTodo.DueDate = task.DueDate;
+        existingTodo.IsCompleted = task.IsCompleted;
+
+        await _context.SaveChangesAsync();
+
+        return existingTodo;
+    }
+} 
 }
