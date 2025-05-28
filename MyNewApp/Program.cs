@@ -6,19 +6,99 @@ using MyNewApp.Models;
 using MyNewApp.Services;
 using MyNewApp.Services.Interfaces;
 using MyNewApp.Validators;
+using DotNetEnv;
+using System.Security.Cryptography;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+Env.Load();
 
+// Add appsettings.josn and environment variables
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddEnvironmentVariables();
+
+// Services
 // Independencies Injection
 builder.Services.AddControllers();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<IValidator<Todo>, TodoValidator>();
+
+// Configuration of EF Core with SQLite
 builder.Services.AddDbContext<TodoContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// JWT Configuration binding
+var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(options =>
+{
+    jwtSettingsSection.Bind(options);
+    options.PrivateKeyPath = Env.GetString("JWT_PRIVATE_KEY_PATH");
+    options.PublicKeyPath = Env.GetString("JWT_PUBLIC_KEY_PATH");
+});
+
+// Load Public RSA key from PEM file
+var publicKeyPath = Env.GetString("JWT_PUBLIC_KEY_PATH");
+var publicKeyText = File.ReadAllText(publicKeyPath);
+
+using var rsa = RSA.Create();
+rsa.ImportFromPem(publicKeyText.ToCharArray());
+var rsaSecurityKey = new RsaSecurityKey(rsa);
+
+// Configuration JWT for authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidIssuer = jwtSettingsSection["Issuer"],
+        ValidAudience = jwtSettingsSection["Audience"],
+        IssuerSigningKey = rsaSecurityKey
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+
+    // Scheme JWT
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Introduce el token JWT en este formato: Bearer {tu token}"
+    });
+
+    // Require scheme
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -41,6 +121,7 @@ app.Use(async (context, next) =>
     Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path} {DateTime.UtcNow} Finished.");
 });
 
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

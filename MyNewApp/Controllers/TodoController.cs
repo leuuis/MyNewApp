@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyNewApp.Models;
 using MyNewApp.Services.Interfaces;
@@ -12,6 +13,7 @@ namespace MyNewApp.Controllers
     {
         private readonly ITodoService _todoService = todoService;
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
@@ -21,6 +23,7 @@ namespace MyNewApp.Controllers
                 : NotFound();
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> AddTodoAsync([FromBody] Todo todo, [FromServices] IValidator<Todo> validator)
         {
@@ -39,7 +42,6 @@ namespace MyNewApp.Controllers
             }
             catch (Exception ex)
             {
-
                 return Conflict(new { error = ex.Message });
             }
             
@@ -51,6 +53,7 @@ namespace MyNewApp.Controllers
             return Ok(new { status = "Healthy", message = "I'm still alive YEAHHH!" });
         }
 
+        [Authorize]
         [HttpGet()]
         public async Task<IActionResult> GetTodoAsync()
         {
@@ -58,6 +61,7 @@ namespace MyNewApp.Controllers
             return Ok(todos);
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTodoByIdAsync(int id)
         {
@@ -65,6 +69,7 @@ namespace MyNewApp.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTodoByIdAsync(int id, Todo todo)
         {
