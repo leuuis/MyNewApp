@@ -13,6 +13,8 @@ secrets.json
 
 # SQLite database file
 *.db
+*.db-shm
+*.db-wal
 
 # VS Code
 .vscode/

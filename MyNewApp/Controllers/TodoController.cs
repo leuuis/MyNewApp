@@ -1,0 +1,64 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+using MyNewApp.Models;
+using MyNewApp.Services.Interfaces;
+
+namespace MyNewApp.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+
+    public class TodoController(ITodoService todoService) : ControllerBase
+    {
+        private readonly ITodoService _todoService = todoService;
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetByIdAsync(int id)
+        {
+            var targetTodo = await _todoService.GetTodoByIdAsync(id);
+            return targetTodo is not null
+                ? Ok(targetTodo)
+                : NotFound();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddTodoAsync([FromBody] Todo todo, [FromServices] IValidator<Todo> validator)
+        {
+            var validationResult = await validator.ValidateAsync(todo, options => options.IncludeRuleSets("Create"));
+    
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new ValidationProblemDetails(validationResult.ToDictionary()));
+            }
+            var added = await _todoService.AddTodoAsync(todo);
+            return Created($"/todos/{added.Id}", added);
+        }
+
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            return Ok(new { status = "Healthy", message = "I'm still alive YEAHHH!" });
+        }
+
+        [HttpGet()]
+        public async Task<IActionResult> GetTodoAsync()
+        {
+            var todos = await _todoService.GetTodosAsync();
+            return Ok(todos);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTodoByIdAsync(int id)
+        {
+            var deleted = await _todoService.DeleteTodoByIdAsync(id);
+            return deleted ? NoContent() : NotFound();
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTodoByIdAsync(int id, Todo todo)
+        {
+            var updated = await _todoService.UpdateTodoByIdAsync(id, todo);
+            return updated is not null ? Ok(updated) : NotFound();
+        }
+    }
+}
