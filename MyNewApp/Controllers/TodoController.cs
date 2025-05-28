@@ -30,8 +30,19 @@ namespace MyNewApp.Controllers
             {
                 return BadRequest(new ValidationProblemDetails(validationResult.ToDictionary()));
             }
-            var added = await _todoService.AddTodoAsync(todo);
-            return Created($"/todos/{added.Id}", added);
+
+            // TODO: Improve error management with a Middleware
+            try
+            {
+                var added = await _todoService.AddTodoAsync(todo);
+                return Created($"/todos/{added.Id}", added);
+            }
+            catch (Exception ex)
+            {
+
+                return Conflict(new { error = ex.Message });
+            }
+            
         }
 
         [HttpGet("health")]
