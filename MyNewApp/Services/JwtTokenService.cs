@@ -23,9 +23,16 @@ namespace MyNewApp.Services
             _privateKey = new RsaSecurityKey(rsa);
         }
 
-        public string GenerateToken(IEnumerable<Claim> claims)
+        public string GenerateToken(User user)
         {
             var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("role", user.Role)
+            };
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

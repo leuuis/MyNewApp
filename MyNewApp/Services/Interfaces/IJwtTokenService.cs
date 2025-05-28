@@ -1,9 +1,9 @@
-using System.Security.Claims;
+using MyNewApp.Models;
 
 namespace MyNewApp.Services.Interfaces
 {
     public interface IJwtTokenService
     {
-        string GenerateToken(IEnumerable<Claim> claims);
+        string GenerateToken(User user);
     }
 }

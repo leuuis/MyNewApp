@@ -13,7 +13,7 @@ namespace MyNewApp.Controllers
     {
         private readonly ITodoService _todoService = todoService;
 
-        [Authorize]
+        [Authorize(Roles = "admin, user")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
@@ -23,7 +23,7 @@ namespace MyNewApp.Controllers
                 : NotFound();
         }
 
-        [Authorize]
+        [Authorize(Roles = "admin")]
         [HttpPost]
         public async Task<IActionResult> AddTodoAsync([FromBody] Todo todo, [FromServices] IValidator<Todo> validator)
         {
@@ -53,7 +53,7 @@ namespace MyNewApp.Controllers
             return Ok(new { status = "Healthy", message = "I'm still alive YEAHHH!" });
         }
 
-        [Authorize]
+        [Authorize(Roles = "admin, user")]
         [HttpGet()]
         public async Task<IActionResult> GetTodoAsync()
         {
@@ -61,7 +61,7 @@ namespace MyNewApp.Controllers
             return Ok(todos);
         }
 
-        [Authorize]
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTodoByIdAsync(int id)
         {
@@ -69,7 +69,7 @@ namespace MyNewApp.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
-        [Authorize]
+        [Authorize(Roles = "admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTodoByIdAsync(int id, Todo todo)
         {

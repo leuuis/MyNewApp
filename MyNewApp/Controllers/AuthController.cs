@@ -1,61 +1,31 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using MyNewApp.Models;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
+using MyNewApp.DTOs;
+using MyNewApp.Services.Interfaces;
 
 namespace MyNewApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-
     public class AuthController : ControllerBase
     {
-        private readonly JwtSettings _jwtSettings;
-        private readonly RsaSecurityKey _privateKey;
+        private readonly IAuthService _authService;
+        private readonly IJwtTokenService _jwtTokenService;
 
-        public AuthController(IOptions<JwtSettings> jwtOptions)
+        public AuthController(IAuthService authService, IJwtTokenService jwtTokenService)
         {
-            _jwtSettings = jwtOptions.Value;
-
-            // Load private key from file
-            var privateKeyPem = System.IO.File.ReadAllText(_jwtSettings.PrivateKeyPath);
-            _privateKey = new RsaSecurityKey(RSA.Create());
-            _privateKey.Rsa.ImportFromPem(privateKeyPem.ToCharArray());
+            _authService = authService;
+            _jwtTokenService = jwtTokenService;
         }
 
         [HttpPost("token")]
-        public IActionResult GenerateToken()
+        public async Task<IActionResult> GenerateToken([FromBody] LoginRequestDto loginDto)
         {
-            var now = DateTime.UtcNow;
+            var user = await _authService.ValidateUserAsync(loginDto.Username, loginDto.Password);
+            if (user == null)
+                return Unauthorized(new { message = "Invalid username or password." });
 
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, "testuser"),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("role", "admin")
-            };
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Issuer = _jwtSettings.Issuer,
-                Audience = _jwtSettings.Audience,
-                NotBefore = now,
-                Expires = now.AddMinutes(_jwtSettings.TokenLifetimeMinutes),
-                SigningCredentials = new SigningCredentials(_privateKey, SecurityAlgorithms.RsaSha256)
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-
-            return Ok(new
-            {
-                token = tokenHandler.WriteToken(token)
-            });
+            var token = _jwtTokenService.GenerateToken(user);
+            return Ok(new { token });
         }
-        
     }
 }

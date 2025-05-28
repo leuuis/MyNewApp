@@ -14,6 +14,9 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Detect seeding argument
+var isSeeding = args.Contains("--seed");
+
 Env.Load();
 
 // Add appsettings.josn and environment variables
@@ -26,6 +29,8 @@ builder.Configuration
 builder.Services.AddControllers();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<IValidator<Todo>, TodoValidator>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 // Configuration of EF Core with SQLite
 builder.Services.AddDbContext<TodoContext>(options =>
@@ -101,6 +106,20 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// User seeder
+if (isSeeding)
+{
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<TodoContext>();
+    context.Database.Migrate();
+
+    Console.WriteLine("Aplicando seeding de usuarios...");
+    DataSeeder.SeedUsers(context);
+    Console.WriteLine("Seeding completado.");
+
+    return;
+}
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
