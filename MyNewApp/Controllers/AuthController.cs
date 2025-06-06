@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MyNewApp.DTOs;
 using MyNewApp.Services.Interfaces;
@@ -18,8 +19,15 @@ namespace MyNewApp.Controllers
         }
 
         [HttpPost("token")]
-        public async Task<IActionResult> GenerateToken([FromBody] LoginRequestDto loginDto)
+        public async Task<IActionResult> GenerateToken([FromBody] LoginRequestDto loginDto, [FromServices] IValidator<LoginRequestDto> validator)
         {
+            var validationResult = await validator.ValidateAsync(loginDto, options => options.IncludeRuleSets("Login"));
+    
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new ValidationProblemDetails(validationResult.ToDictionary()));
+            }
+            
             var user = await _authService.ValidateUserAsync(loginDto.Username, loginDto.Password);
             if (user == null)
                 return Unauthorized(new { message = "Invalid username or password." });

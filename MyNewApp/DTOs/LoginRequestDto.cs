@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MyNewApp.DTOs
 {
     public class LoginRequestDto

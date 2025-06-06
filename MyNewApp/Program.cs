@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
+using MyNewApp.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,7 @@ builder.Configuration
 builder.Services.AddControllers();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<IValidator<Todo>, TodoValidator>();
+builder.Services.AddScoped<IValidator<LoginRequestDto>, LoginValidator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
