@@ -17,14 +17,24 @@ namespace MyNewApp.Helpers
         private static object Sanitize(object? data)
         {
             if (data is null) return "";
+
             var json = System.Text.Json.JsonSerializer.Serialize(data);
+            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
 
-            json = json
-                .Replace("password", "***", StringComparison.OrdinalIgnoreCase)
-                .Replace("token", "***", StringComparison.OrdinalIgnoreCase)
-                .Replace("authorization", "***", StringComparison.OrdinalIgnoreCase);
+            if (dict == null) return "";
 
-            return json;
+            var sensitiveKeys = new[] { "password", "token", "authorization", "secret", "key" };
+
+            foreach (var key in sensitiveKeys)
+            {
+                var match = dict.Keys.FirstOrDefault(k => k.Equals(key, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    dict[match] = "***";
+                }
+            }
+
+            return System.Text.Json.JsonSerializer.Serialize(dict);
         }
     }
 }
