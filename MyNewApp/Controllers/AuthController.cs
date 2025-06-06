@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MyNewApp.DTOs;
 using MyNewApp.Services.Interfaces;
+using MyNewApp.Helpers;
 
 namespace MyNewApp.Controllers
 {
@@ -11,16 +12,20 @@ namespace MyNewApp.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IJwtTokenService _jwtTokenService;
+        private readonly ILogger _logger;
 
-        public AuthController(IAuthService authService, IJwtTokenService jwtTokenService)
+        public AuthController(IAuthService authService, IJwtTokenService jwtTokenService, ILogger logger)
         {
             _authService = authService;
             _jwtTokenService = jwtTokenService;
+            _logger = logger;
         }
 
         [HttpPost("token")]
         public async Task<IActionResult> GenerateToken([FromBody] LoginRequestDto loginDto, [FromServices] IValidator<LoginRequestDto> validator)
         {
+            SafeLogger.LogInfoSafe(_logger, "Login attempt", loginDto);
+
             var validationResult = await validator.ValidateAsync(loginDto, options => options.IncludeRuleSets("Login"));
     
             if (!validationResult.IsValid)
