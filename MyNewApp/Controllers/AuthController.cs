@@ -14,7 +14,7 @@ namespace MyNewApp.Controllers
         private readonly IJwtTokenService _jwtTokenService;
         private readonly ILogger _logger;
 
-        public AuthController(IAuthService authService, IJwtTokenService jwtTokenService, ILogger logger)
+        public AuthController(IAuthService authService, IJwtTokenService jwtTokenService, ILogger<AuthController> logger)
         {
             _authService = authService;
             _jwtTokenService = jwtTokenService;
